@@ -7,7 +7,8 @@ import (
 )
 
 func LoadEnvVariables() {
-	er := godotenv.Load()
+	// provide .env file's location in following function
+	er := godotenv.Load("../.env")
 
 	if er != nil {
 		log.Fatalf("Error loading .env file %v", er)
