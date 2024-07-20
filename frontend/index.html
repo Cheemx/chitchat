@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chitchat</title>
+    <style>
+        .center {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        textarea {
+            width: 80%;
+            height: 200px;
+        }
+
+        input[type="text"], input[type="password"], input[type="submit"] {
+            padding: 10px;
+            margin: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="center">
+        <h1>Chitchat</h1>
+        <h3 id="chat-header">Currently in chat: general</h3>
+        <h3 id="connection-header">Connected to Websocket: false</h3>
+
+        <form id="chatroom-selection">
+            <label for="chatroom">Chatroom:</label>
+            <input type="text" name="chatroom" id="chatroom"> <br><br>
+            <input type="submit" value="Change chatroom">
+        </form>
+        <br><br>
+
+        <textarea readonly class="messagearea" name="chatmessages" id="chatmessages" rows="4"
+        cols="50" placeholder="Welcome to chatroom..."></textarea>
+
+        <form id="chatroom-message">
+            <label for="message">Message:</label>
+            <input type="text" name="message" id="message"><br><br>
+            <input type="submit" value="Send Message">
+        </form>
+        <br><br>
+
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username"><br><br>
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password"><br><br>
+            <input type="submit" value="Login">
+        </form>
+
+    </div>
+    <script>
+        var selectedChat = "general";
+        var conn;
+
+        class Event {
+            constructor(type, payload) {
+                this.type = type;
+                this.payload = payload;
+            }
+        }
+
+        class SendMessageEvent {
+            constructor(message, from) {
+                this.message = message;
+                this.from = from;
+            }
+        }
+
+        class NewMessageEvent {
+            constructor(message, from, sent) {
+                this.message = message;
+                this.from = from;
+                this.sent = sent;
+            }
+        }
+
+        function routeEvent(event) {
+            if (event.type === undefined) {
+                alert('No type field in the event');
+                return;
+            }
+
+            switch (event.type) {
+                case "new_message":
+                    const messageEvent = Object.assign(new NewMessageEvent(), event.payload);
+                    appendChatMessage(messageEvent);
+                    break;
+                default:
+                    alert("Unsupported message type");
+                    break;
+            }
+        }
+
+        function appendChatMessage(messageEvent) {
+            var date = new Date(messageEvent.sent);
+            const formattedMsg = `${date.toLocaleString()}: ${messageEvent.message}`;
+
+            const textarea = document.getElementById("chatmessages");
+            textarea.value += "\n" + formattedMsg;
+            textarea.scrollTop = textarea.scrollHeight;
+        }
+
+        function sendEvent(eventName, payload) {
+            const event = new Event(eventName, payload);
+            conn.send(JSON.stringify(event));
+        }
+
+        function changeChatroom(event) {
+            event.preventDefault();
+            var newChat = document.getElementById("chatroom").value;
+            if (newChat && newChat !== selectedChat) {
+                selectedChat = newChat;
+                document.getElementById("chat-header").innerText = "Currently in chat: " + newChat;
+                document.getElementById("chatmessages").value = "Welcome to chatroom: " + newChat;
+            }
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            var newMessage = document.getElementById("message").value;
+            if (newMessage) {
+                let outgoingEvent = new SendMessageEvent(newMessage, "username");
+                sendEvent("send_message", outgoingEvent);
+                document.getElementById("message").value = "";
+            }
+        }
+
+        function login(event) {
+            event.preventDefault();
+            let formData = {
+                "username": document.getElementById("username").value,
+                "password": document.getElementById("password").value
+            };
+
+            fetch("/login", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw 'Unauthorized';
+                }
+            }).then(data => {
+                connectWebSocket();
+            }).catch(error => {
+                alert(error);
+            });
+        }
+
+        function connectWebSocket() {
+            if (window["WebSocket"]) {
+                console.log("Supports WebSockets");
+                conn = new WebSocket("ws://" + document.location.host + "/ws");
+
+                conn.onopen = function(evt) {
+                    document.getElementById("connection-header").innerHTML = "Connected to Websocket: true";
+                };
+
+                conn.onclose = function(evt) {
+                    document.getElementById("connection-header").innerHTML = "Connected to Websocket: false";
+                };
+
+                conn.onmessage = function(evt) {
+                    const eventData = JSON.parse(evt.data);
+                    routeEvent(eventData);
+                };
+            } else {
+                alert('Browser does not support WebSocket');
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById("chatroom-selection").onsubmit = changeChatroom;
+            document.getElementById("chatroom-message").onsubmit = sendMessage;
+            document.getElementById("login-form").onsubmit = login;
+        };
+    </script>
+</body>
+</html>
