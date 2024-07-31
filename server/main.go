@@ -7,17 +7,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func init() {
 	// controller.LoadEnvVariables()
-	er := godotenv.Load(".env")
+	// er := godotenv.Load(".env")
 
-	if er != nil {
-		log.Fatalf("Error loading .env file %v", er)
-	}
+	// if er != nil {
+	// 	log.Fatalf("Error loading .env file %v", er)
+	// }
 	db.ConnectToDB()
 }
 
