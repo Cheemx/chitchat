@@ -11,6 +11,7 @@ import (
 func Router() *mux.Router {
 	router := mux.NewRouter()
 	// manager := controller.NewManager()
+	router.Use(middleware.CorsMiddleware)
 
 	router.Handle("/", http.FileServer(http.Dir("../frontend")))
 	router.HandleFunc("/signup", controller.Signup).Methods("POST")

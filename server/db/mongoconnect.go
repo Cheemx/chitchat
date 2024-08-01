@@ -21,6 +21,9 @@ var UserCollection *mongo.Collection
 func ConnectToDB() {
 	// client options ---->2nd
 	constr := os.Getenv("MONGODB_URI")
+	if constr == "" {
+		log.Fatalf("Error getting the connection string")
+	}
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	clientOption := options.Client().ApplyURI(constr).SetServerAPIOptions(serverAPI)
 

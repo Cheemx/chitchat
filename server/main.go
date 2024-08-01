@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api/controller"
 	"api/db"
 	"api/router"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 )
 
 func init() {
-	// controller.LoadEnvVariables()
+	controller.LoadEnvVariables()
 	// er := godotenv.Load(".env")
 
 	// if er != nil {
@@ -22,6 +23,9 @@ func init() {
 func main() {
 	r := router.Router()
 	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("Error parsing the port number")
+	}
 	fmt.Println("Server is getting started ...")
 
 	// http.ListenAndServeTLS to make it https
